@@ -39,14 +39,15 @@ public class Money {
 
     @Override
     public boolean equals(Object o) {
+        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Money money = (Money) o;
-        return Objects.equals(amount, money.amount);
+        return amount.equals(money.amount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(amount);
+        return Objects.hash(amount);
     }
 
     private BigDecimal setScale(BigDecimal input) {

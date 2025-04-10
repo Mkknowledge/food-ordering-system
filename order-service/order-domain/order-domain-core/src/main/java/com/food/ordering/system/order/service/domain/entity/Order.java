@@ -19,13 +19,13 @@ public class Order extends AggregateRoot<OrderId> {
 
     private TrackingId trackingId;
     private OrderStatus orderStatus;
-    private List<String> failureMessage;
+    private List<String> failureMessages;
 
-    public void initializedOrder() {
+    public void initializeOrder() {
         setId(new OrderId(UUID.randomUUID()));
         trackingId = new TrackingId(UUID.randomUUID());
         orderStatus = OrderStatus.PENDING;
-        initializedOrderItems();
+        initializeOrderItems();
     }
 
     public void validateOrder() {
@@ -42,60 +42,34 @@ public class Order extends AggregateRoot<OrderId> {
     }
 
     public void approve() {
-        if (orderStatus != OrderStatus.PAID) {
+        if(orderStatus != OrderStatus.PAID) {
             throw new OrderDomainException("Order is not in correct state for approve operation!");
         }
         orderStatus = OrderStatus.APPROVED;
     }
 
-    public void initCancel(List<String> failureMessage) {
+    public void initCancel(List<String> failureMessages) {
         if (orderStatus != OrderStatus.PAID) {
             throw new OrderDomainException("Order is not in correct state for initCancel operation!");
         }
         orderStatus = OrderStatus.CANCELLING;
-        updateFailureMessages(failureMessage);
+        updateFailureMessages(failureMessages);
     }
 
-
-    public void cancel(List<String> failureMessage) {
+    public void cancel(List<String> failureMessages) {
         if (!(orderStatus == OrderStatus.CANCELLING || orderStatus == OrderStatus.PENDING)) {
             throw new OrderDomainException("Order is not in correct state for cancel operation!");
         }
         orderStatus = OrderStatus.CANCELLED;
-        updateFailureMessages(failureMessage);
+        updateFailureMessages(failureMessages);
     }
 
-    private void updateFailureMessages(List<String> failureMessage) {
-        if (this.failureMessage != null && failureMessage != null) {
-            this.failureMessage.addAll(failureMessage.stream().filter(message -> !message.isEmpty()).toList());
+    private void updateFailureMessages(List<String> failureMessages) {
+        if (this.failureMessages != null && failureMessages != null) {
+            this.failureMessages.addAll(failureMessages.stream().filter(message -> !message.isEmpty()).toList());
         }
-        if (this.failureMessage == null) {
-            this.failureMessage = failureMessage;
-        }
-    }
-
-    private void validateItemsPrice() {
-       Money orderItemsTotal = items.stream().map(orderItem -> {
-            validateItemPrice(orderItem);
-            return orderItem.getSubTotal();
-        }).reduce(Money.ZERO, Money::add);
-
-       if (price.equals(orderItemsTotal)) {
-           throw new OrderDomainException("Total price : " + price.getAmount()
-           + " is not equal to Order items total: " + orderItemsTotal.getAmount() + " !");
-       }
-    }
-
-    private void validateItemPrice(OrderItem orderItem) {
-        if (!orderItem.isPriceValid()) {
-            throw new OrderDomainException("Order item price :" + orderItem.getPrice().getAmount() +
-                    " is not valid for product " + orderItem.getProduct().getId().getValue());
-        }
-    }
-
-    private void validateTotalPrice() {
-        if (price != null || !price.isGreaterThanZero()) {
-            throw new OrderDomainException("Total price must be greater than zero");
+        if (this.failureMessages == null) {
+            this.failureMessages = failureMessages;
         }
     }
 
@@ -105,10 +79,35 @@ public class Order extends AggregateRoot<OrderId> {
         }
     }
 
-    private void initializedOrderItems() {
-        long itemID = 1;
+    private void validateTotalPrice() {
+        if (price == null || !price.isGreaterThanZero()) {
+            throw new OrderDomainException("Total price must be greater than zero!");
+        }
+    }
+
+    private void validateItemsPrice() {
+        Money orderItemsTotal = items.stream().map(orderItem -> {
+            validateItemPrice(orderItem);
+            return orderItem.getSubTotal();
+        }).reduce(Money.ZERO, Money::add);
+
+        if (!price.equals(orderItemsTotal)) {
+            throw new OrderDomainException("Total price: " + price.getAmount()
+                + " is not equal to Order items total: " + orderItemsTotal.getAmount() + "!");
+        }
+    }
+
+    private void validateItemPrice(OrderItem orderItem) {
+        if (!orderItem.isPriceValid()) {
+            throw new OrderDomainException("Order item price: " + orderItem.getPrice().getAmount() +
+                    " is not valid for product " + orderItem.getProduct().getId().getValue());
+        }
+    }
+
+    private void initializeOrderItems() {
+        long itemId = 1;
         for (OrderItem orderItem: items) {
-            orderItem.initializeOrderItem(super.getId(), new OrderItemId(itemID++));
+            orderItem.initializeOrderItem(super.getId(), new OrderItemId(itemId++));
         }
     }
 
@@ -121,9 +120,12 @@ public class Order extends AggregateRoot<OrderId> {
         items = builder.items;
         trackingId = builder.trackingId;
         orderStatus = builder.orderStatus;
-        failureMessage = builder.failureMessage;
+        failureMessages = builder.failureMessages;
     }
 
+    public static Builder builder() {
+        return new Builder();
+    }
 
     public CustomerId getCustomerId() {
         return customerId;
@@ -153,8 +155,8 @@ public class Order extends AggregateRoot<OrderId> {
         return orderStatus;
     }
 
-    public List<String> getFailureMessage() {
-        return failureMessage;
+    public List<String> getFailureMessages() {
+        return failureMessages;
     }
 
     public static final class Builder {
@@ -166,16 +168,12 @@ public class Order extends AggregateRoot<OrderId> {
         private List<OrderItem> items;
         private TrackingId trackingId;
         private OrderStatus orderStatus;
-        private List<String> failureMessage;
+        private List<String> failureMessages;
 
         private Builder() {
         }
 
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        public Builder id(OrderId val) {
+        public Builder orderId(OrderId val) {
             orderId = val;
             return this;
         }
@@ -215,8 +213,8 @@ public class Order extends AggregateRoot<OrderId> {
             return this;
         }
 
-        public Builder failureMessage(List<String> val) {
-            failureMessage = val;
+        public Builder failureMessages(List<String> val) {
+            failureMessages = val;
             return this;
         }
 
