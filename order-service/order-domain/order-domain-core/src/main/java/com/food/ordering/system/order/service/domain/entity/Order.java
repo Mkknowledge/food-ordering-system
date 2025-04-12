@@ -8,6 +8,7 @@ import com.food.ordering.system.order.service.domain.valueobject.StreetAddress;
 import com.food.ordering.system.order.service.domain.valueobject.TrackingId;
 
 import java.util.List;
+import java.util.Stack;
 import java.util.UUID;
 
 public class Order extends AggregateRoot<OrderId> {
@@ -20,6 +21,8 @@ public class Order extends AggregateRoot<OrderId> {
     private TrackingId trackingId;
     private OrderStatus orderStatus;
     private List<String> failureMessages;
+
+    public static final String FAILURE_MESSAGE_DELIMITER = ",";
 
     public void initializeOrder() {
         setId(new OrderId(UUID.randomUUID()));
